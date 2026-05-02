@@ -85,6 +85,3 @@ sm_isb_ma_ban_type "1"
 
 // Тип мута MaterialAdmin: 1 – голосовой чат, 2 – текстовый, 3 – оба
 sm_isb_ma_mute_type "3"
-
-
-Автор: PattHs
