@@ -9,8 +9,8 @@ public Plugin myinfo =
     name        = "IP & Site Blocker",
     author      = "PattHs",
     description = "Block IP, domains, banwords with MaterialAdmin support",
-    version     = "0.0.1",
-    url         = ""
+    version     = "0.0.2",
+    url         = "https://discord.gg/VmJzFBD6wf"
 };
 
 bool g_bHasMA = false;
@@ -250,14 +250,55 @@ bool ContainsIP(const char[] text)
             {
                 char found[64];
                 strcopy(found, j - i + 1, buf[i]);
-                bool white = false;
+                
+                int portPos = -1;
+                for (int k = 0; k < strlen(found); k++)
+                {
+                    if (found[k] == ':')
+                    {
+                        portPos = k;
+                        break;
+                    }
+                }
+                if (portPos != -1)
+                    found[portPos] = '\0';
+                
+                bool whitelisted = false;
                 for (int k = 0; k < g_hWhitelistIP.Length; k++)
                 {
                     char wl[64];
                     g_hWhitelistIP.GetString(k, wl, sizeof(wl));
-                    if (StrEqual(found, wl, false)) { white = true; break; }
+                    StringToLower(wl);
+                    
+                    int wlPortPos = -1;
+                    for (int p = 0; p < strlen(wl); p++)
+                    {
+                        if (wl[p] == ':')
+                        {
+                            wlPortPos = p;
+                            break;
+                        }
+                    }
+                    if (wlPortPos != -1)
+                        wl[wlPortPos] = '\0';
+                    
+                    if (StrEqual(found, wl, false))
+                    {
+                        whitelisted = true;
+                        break;
+                    }
                 }
-                if (!white) return true;
+                if (!whitelisted)
+                {
+                    if (g_bLogEnabled)
+                        LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Blocked IP: %s", found);
+                    return true;
+                }
+                else
+                {
+                    if (g_bLogEnabled)
+                        LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Allowed IP (whitelist): %s", found);
+                }
             }
             i = j;
         }
@@ -368,14 +409,14 @@ void PunishClient(int client, const char[] violationText, bool bFromName = false
     else if (g_iPunishType == 11 && g_bHasMA)
     {
         char reason[128];
-        Format(reason, sizeof(reason), "Реклама: %s", violationText);
+        Format(reason, sizeof(reason), "Auto mute: %s", violationText);
         MASetClientMuteType(0, client, reason, g_iMAMuteType, g_iMuteTime);
         PrintToChat(client, "%s %t", g_sPrefix, "MutedByMA", g_iMuteTime);
     }
     else if (g_iPunishType == 12 && g_bHasMA)
     {
         char reason[128];
-        Format(reason, sizeof(reason), "Реклама: %s", violationText);
+        Format(reason, sizeof(reason), "Auto ban: %s", violationText);
         MABanPlayer(0, client, g_iMABanType, g_iBanTime, reason);
         PrintToChat(client, "%s %t", g_sPrefix, "BannedByMA", g_iBanTime);
     }
