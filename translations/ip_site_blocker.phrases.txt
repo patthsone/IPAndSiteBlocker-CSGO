@@ -1,0 +1,38 @@
+"Phrases"
+{
+    "Prefix"
+    {
+        "ru"    " {BLUE}[ISB]{DEFAULT}"
+        "en"    " {BLUE}[ISB]{DEFAULT}"
+    }
+    "HaveBanInChat"
+    {
+        "ru"    "Сообщение удалено: запрещённая информация."
+        "en"    "Message blocked: forbidden info."
+    }
+    "HaveBanInName"
+    {
+        "ru"    "Имя содержит запрещённую информацию, восстановлено."
+        "en"    "Name contains forbidden info, restored."
+    }
+    "KickReason"
+    {
+        "ru"    "Реклама/запрещённая информация"
+        "en"    "Advertising/forbidden info"
+    }
+    "MutedByGag"
+    {
+        "ru"    "Вы загажены на %i минут."
+        "en"    "You have been gagged for %i minutes."
+    }
+    "MutedByMA"
+    {
+        "ru"    "Вы замучены через MA на %i минут."
+        "en"    "You have been muted via MA for %i minutes."
+    }
+    "BannedByMA"
+    {
+        "ru"    "Вы забанены через MA на %i минут."
+        "en"    "You have been banned via MA for %i minutes."
+    }
+}
