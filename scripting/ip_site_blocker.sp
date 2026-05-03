@@ -201,7 +201,6 @@ public Action OnSayCommand(int client, const char[] command, int argc)
     StripQuotes(msg);
     TrimString(msg);
     
-    // Игнорируем команды, начинающиеся с ! или / (даже если есть пробелы перед ними)
     int idx = 0;
     while (idx < strlen(msg) && msg[idx] == ' ') idx++;
     if (idx < strlen(msg) && (msg[idx] == '!' || msg[idx] == '/'))
@@ -230,7 +229,7 @@ public void Event_OnChangeName(Event event, const char[] name, bool dontBroadcas
     }
 }
 
-// Вспомогательная функция: удаляет все пробелы из строки
+
 void RemoveSpaces(const char[] input, char[] output, int maxlen)
 {
     int j = 0;
@@ -248,13 +247,13 @@ bool IsViolation(const char[] text)
     strcopy(buf, sizeof(buf), text);
     StringToLower(buf);
     
-    // Для IP и доменов удаляем пробелы (обфускация)
+
     char noSpaces[512];
     RemoveSpaces(buf, noSpaces, sizeof(noSpaces));
     
     if (g_bEnableIP && ContainsIP(noSpaces)) return true;
     if (g_bEnableDomain && ContainsDomain(noSpaces)) return true;
-    // Бан-ворды проверяем на оригинале (с пробелами), чтобы не блокировать обычные фразы
+
     if (g_bEnableBanWords && ContainsBanWord(buf)) return true;
     return false;
 }
@@ -281,7 +280,6 @@ bool ContainsIP(const char[] text)
                 char found[64];
                 strcopy(found, j - i + 1, buf[i]);
                 
-                // Удаляем порт, если есть
                 int portPos = -1;
                 for (int k = 0; k < strlen(found); k++)
                 {
@@ -301,7 +299,6 @@ bool ContainsIP(const char[] text)
                     g_hWhitelistIP.GetString(k, wl, sizeof(wl));
                     StringToLower(wl);
                     
-                    // Удаляем порт из белого списка
                     int wlPortPos = -1;
                     for (int p = 0; p < strlen(wl); p++)
                     {
