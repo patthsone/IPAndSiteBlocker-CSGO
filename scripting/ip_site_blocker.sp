@@ -9,7 +9,7 @@ public Plugin myinfo =
     name        = "IP & Site Blocker",
     author      = "PattHs",
     description = "Block IP, domains, banwords with MaterialAdmin support",
-    version     = "0.0.2",
+    version     = "0.0.4",
     url         = "https://discord.gg/VmJzFBD6wf"
 };
 
@@ -179,7 +179,7 @@ void LoadLists()
 
     if (g_bLogEnabled)
     {
-        LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Loaded whitelist: IP=%d, Domains=%d, BanWords=%d",
+        LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Loaded lists: IP=%d, Domains=%d, BanWords=%d",
             g_hWhitelistIP.Length, g_hWhitelistDomains.Length, g_hBanWords.Length);
     }
 }
@@ -195,9 +195,18 @@ public Action Command_Reload(int client, int args)
 public Action OnSayCommand(int client, const char[] command, int argc)
 {
     if (client == 0 || !IsClientInGame(client)) return Plugin_Continue;
+    
     char msg[256];
     GetCmdArgString(msg, sizeof(msg));
     StripQuotes(msg);
+    TrimString(msg);
+    
+    // Игнорируем команды, начинающиеся с ! или / (даже если есть пробелы перед ними)
+    int idx = 0;
+    while (idx < strlen(msg) && msg[idx] == ' ') idx++;
+    if (idx < strlen(msg) && (msg[idx] == '!' || msg[idx] == '/'))
+        return Plugin_Continue;
+    
     if (IsViolation(msg))
     {
         PunishClient(client, msg);
@@ -221,11 +230,32 @@ public void Event_OnChangeName(Event event, const char[] name, bool dontBroadcas
     }
 }
 
+// Вспомогательная функция: удаляет все пробелы из строки
+void RemoveSpaces(const char[] input, char[] output, int maxlen)
+{
+    int j = 0;
+    for (int i = 0; input[i] != '\0' && j < maxlen - 1; i++)
+    {
+        if (input[i] != ' ')
+            output[j++] = input[i];
+    }
+    output[j] = '\0';
+}
+
 bool IsViolation(const char[] text)
 {
-    if (g_bEnableIP && ContainsIP(text)) return true;
-    if (g_bEnableDomain && ContainsDomain(text)) return true;
-    if (g_bEnableBanWords && ContainsBanWord(text)) return true;
+    char buf[512];
+    strcopy(buf, sizeof(buf), text);
+    StringToLower(buf);
+    
+    // Для IP и доменов удаляем пробелы (обфускация)
+    char noSpaces[512];
+    RemoveSpaces(buf, noSpaces, sizeof(noSpaces));
+    
+    if (g_bEnableIP && ContainsIP(noSpaces)) return true;
+    if (g_bEnableDomain && ContainsDomain(noSpaces)) return true;
+    // Бан-ворды проверяем на оригинале (с пробелами), чтобы не блокировать обычные фразы
+    if (g_bEnableBanWords && ContainsBanWord(buf)) return true;
     return false;
 }
 
@@ -251,6 +281,7 @@ bool ContainsIP(const char[] text)
                 char found[64];
                 strcopy(found, j - i + 1, buf[i]);
                 
+                // Удаляем порт, если есть
                 int portPos = -1;
                 for (int k = 0; k < strlen(found); k++)
                 {
@@ -270,6 +301,7 @@ bool ContainsIP(const char[] text)
                     g_hWhitelistIP.GetString(k, wl, sizeof(wl));
                     StringToLower(wl);
                     
+                    // Удаляем порт из белого списка
                     int wlPortPos = -1;
                     for (int p = 0; p < strlen(wl); p++)
                     {
@@ -293,11 +325,6 @@ bool ContainsIP(const char[] text)
                     if (g_bLogEnabled)
                         LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Blocked IP: %s", found);
                     return true;
-                }
-                else
-                {
-                    if (g_bLogEnabled)
-                        LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Allowed IP (whitelist): %s", found);
                 }
             }
             i = j;
@@ -338,7 +365,8 @@ bool ContainsDomain(const char[] text)
                     }
                     if (!white)
                     {
-                        if (g_bLogEnabled) LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Blocked domain: %s", candidate);
+                        if (g_bLogEnabled) 
+                            LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Blocked domain: %s", candidate);
                         return true;
                     }
                 }
