@@ -8,15 +8,14 @@ public Plugin myinfo =
 {
     name        = "IP & Site Blocker",
     author      = "PattHs",
-    description = "Block IP, domains, banwords with MaterialAdmin support",
-    version     = "0.0.4",
+    description = "Block IP, domains with MaterialAdmin support",
+    version     = "0.0.5",
     url         = "https://discord.gg/VmJzFBD6wf"
 };
 
 bool g_bHasMA = false;
 bool g_bEnableIP = true;
 bool g_bEnableDomain = true;
-bool g_bEnableBanWords = true;
 bool g_bLogEnabled = true;
 int g_iPunishType = 1;
 char g_sPunishCmd[256] = "sm_gag #%i 60";
@@ -27,7 +26,6 @@ int g_iMAMuteType = 3;
 
 ArrayList g_hWhitelistIP;
 ArrayList g_hWhitelistDomains;
-ArrayList g_hBanWords;
 
 char g_sPrefix[64];
 
@@ -46,7 +44,6 @@ public void OnPluginStart()
     CreateConVar("sm_isb_version", "1.0", "IP & Site Blocker version", FCVAR_SPONLY|FCVAR_NOTIFY);
     CreateConVar("sm_isb_enable_ip", "1", "Enable IP blocking (1=on,0=off)");
     CreateConVar("sm_isb_enable_domain", "1", "Enable domain blocking (1=on,0=off)");
-    CreateConVar("sm_isb_enable_banwords", "1", "Enable banwords filter (1=on,0=off)");
     CreateConVar("sm_isb_log", "1", "Log violations (1=yes,0=no)");
     CreateConVar("sm_isb_punish_type", "1", "Punishment: 1=warn,2=kick,3=mute(sm_gag),4=ban,5=custom,11=MA mute,12=MA ban");
     CreateConVar("sm_isb_punish_cmd", "sm_gag #%i 60", "Custom command for type 5, use {steamid64},{ip},{name},#%i");
@@ -83,7 +80,6 @@ public void OnConfigsExecuted()
 {
     g_bEnableIP       = GetConVarBool(FindConVar("sm_isb_enable_ip"));
     g_bEnableDomain   = GetConVarBool(FindConVar("sm_isb_enable_domain"));
-    g_bEnableBanWords = GetConVarBool(FindConVar("sm_isb_enable_banwords"));
     g_bLogEnabled     = GetConVarBool(FindConVar("sm_isb_log"));
     g_iPunishType     = GetConVarInt(FindConVar("sm_isb_punish_type"));
     GetConVarString(FindConVar("sm_isb_punish_cmd"), g_sPunishCmd, sizeof(g_sPunishCmd));
@@ -112,14 +108,6 @@ void CreateDirectories()
     {
         File f = OpenFile(path, "w");
         f.WriteLine("example.com");
-        f.Close();
-    }
-
-    BuildPath(Path_SM, path, sizeof(path), "configs/ip_site_blocker/banwords.txt");
-    if (!FileExists(path))
-    {
-        File f = OpenFile(path, "w");
-        f.WriteLine("test");
         f.Close();
     }
 }
@@ -160,27 +148,10 @@ void LoadLists()
         f.Close();
     }
 
-    if (g_hBanWords != null) delete g_hBanWords;
-    g_hBanWords = new ArrayList(64);
-    BuildPath(Path_SM, path, sizeof(path), "configs/ip_site_blocker/banwords.txt");
-    f = OpenFile(path, "r");
-    if (f != null)
-    {
-        char line[64];
-        while (!f.EndOfFile() && f.ReadLine(line, sizeof(line)))
-        {
-            TrimString(line);
-            if (line[0] == '\0' || line[0] == ';' || line[0] == '/') continue;
-            StringToLower(line);
-            g_hBanWords.PushString(line);
-        }
-        f.Close();
-    }
-
     if (g_bLogEnabled)
     {
-        LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Loaded lists: IP=%d, Domains=%d, BanWords=%d",
-            g_hWhitelistIP.Length, g_hWhitelistDomains.Length, g_hBanWords.Length);
+        LogToFileEx("addons/sourcemod/logs/ip_site_blocker.log", "Loaded lists: IP=%d, Domains=%d",
+            g_hWhitelistIP.Length, g_hWhitelistDomains.Length);
     }
 }
 
@@ -229,7 +200,6 @@ public void Event_OnChangeName(Event event, const char[] name, bool dontBroadcas
     }
 }
 
-
 void RemoveSpaces(const char[] input, char[] output, int maxlen)
 {
     int j = 0;
@@ -246,15 +216,12 @@ bool IsViolation(const char[] text)
     char buf[512];
     strcopy(buf, sizeof(buf), text);
     StringToLower(buf);
-    
 
     char noSpaces[512];
     RemoveSpaces(buf, noSpaces, sizeof(noSpaces));
     
     if (g_bEnableIP && ContainsIP(noSpaces)) return true;
-    if (g_bEnableDomain && ContainsDomain(noSpaces)) return true;
-
-    if (g_bEnableBanWords && ContainsBanWord(buf)) return true;
+    if (g_bEnableDomain && ContainsDomain(buf)) return true;
     return false;
 }
 
@@ -339,7 +306,7 @@ bool ContainsDomain(const char[] text)
     int len = strlen(buf);
     for (int i = 0; i < len; i++)
     {
-        if (IsCharAlpha(buf[i]) || IsCharNumeric(buf[i]))
+        if (buf[i] == 'w' || buf[i] == 'h' || buf[i] == 't' || buf[i] == 'f' || buf[i] == 'c' || buf[i] == 'o' || buf[i] == 'm' || buf[i] == 'n' || buf[i] == 'e' || buf[i] == 't' || buf[i] == 'r' || buf[i] == 'u' || buf[i] == 's' || buf[i] == 'p' || buf[i] == 'l' || buf[i] == 'a' || buf[i] == 'i' || buf[i] == 'd' || buf[i] == 'g' || buf[i] == 'b' || buf[i] == 'v' || buf[i] == 'y' || buf[i] == 'x' || buf[i] == 'z' || buf[i] == 'q' || buf[i] == 'j' || buf[i] == 'k' || buf[i] == '.')
         {
             int start = i;
             while (start > 0 && (IsCharAlpha(buf[start-1]) || IsCharNumeric(buf[start-1]) || buf[start-1] == '-' || buf[start-1] == '.'))
@@ -347,11 +314,12 @@ bool ContainsDomain(const char[] text)
             int end = i;
             while (end < len && (IsCharAlpha(buf[end]) || IsCharNumeric(buf[end]) || buf[end] == '-' || buf[end] == '.'))
                 end++;
-            if (end > start)
+            if (end - start >= 5)
             {
                 char candidate[128];
                 strcopy(candidate, end - start + 1, buf[start]);
-                if (StrContains(candidate, ".") != -1)
+                
+                if (StrContains(candidate, "http") != -1 || StrContains(candidate, "www") != -1 || StrContains(candidate, ".com") != -1 || StrContains(candidate, ".net") != -1 || StrContains(candidate, ".org") != -1 || StrContains(candidate, ".ru") != -1 || StrContains(candidate, ".ua") != -1 || StrContains(candidate, ".by") != -1 || StrContains(candidate, ".kz") != -1 || StrContains(candidate, ".uz") != -1 || StrContains(candidate, ".info") != -1 || StrContains(candidate, ".biz") != -1 || StrContains(candidate, ".xyz") != -1 || StrContains(candidate, ".top") != -1 || StrContains(candidate, ".site") != -1 || StrContains(candidate, ".online") != -1)
                 {
                     bool white = false;
                     for (int k = 0; k < g_hWhitelistDomains.Length; k++)
@@ -369,20 +337,6 @@ bool ContainsDomain(const char[] text)
                 }
             }
         }
-    }
-    return false;
-}
-
-bool ContainsBanWord(const char[] text)
-{
-    char buf[512];
-    strcopy(buf, sizeof(buf), text);
-    StringToLower(buf);
-    for (int i = 0; i < g_hBanWords.Length; i++)
-    {
-        char bw[64];
-        g_hBanWords.GetString(i, bw, sizeof(bw));
-        if (StrContains(buf, bw) != -1) return true;
     }
     return false;
 }
